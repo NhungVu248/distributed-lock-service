@@ -71,6 +71,45 @@ class LockManager:
             "resource": resource
         }
 
+    def renew_lock(self, client_id, resource, ttl):
+        if resource not in self.locks:
+            return {
+                "success": False,
+                "message": "No lock exists for this resource",
+                "resource": resource
+            }
+
+        if self._is_expired(resource):
+            old_owner = self.locks[resource]["owner"]
+            del self.locks[resource]
+            self._log(old_owner, "EXPIRED", resource, "EXPIRED", "Lock expired due to TTL")
+            self._grant_next_in_queue(resource)
+            return {
+                "success": False,
+                "message": "Lock has already expired and was released",
+                "resource": resource
+            }
+
+        lock = self.locks[resource]
+        if lock["owner"] != client_id:
+            self._log(client_id, "RENEW", resource, "DENIED", "Only lock owner can renew this lock")
+            return {
+                "success": False,
+                "message": "Only lock owner can renew this lock"
+            }
+
+        new_expires = datetime.now() + timedelta(seconds=ttl)
+        lock["ttl"] = ttl
+        lock["expires_at"] = new_expires.strftime("%Y-%m-%d %H:%M:%S")
+        self._log(client_id, "RENEW", resource, "SUCCESS", "Lock renewed")
+        return {
+            "success": True,
+            "message": "Lock renewed",
+            "resource": resource,
+            "owner": client_id,
+            "new_expires_at": lock["expires_at"]
+        }
+
     def get_status(self, resource):
         # Passive expiry check: grant to queue head if any
         if resource in self.locks and self._is_expired(resource):

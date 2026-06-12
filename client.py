@@ -34,6 +34,15 @@ def get_locks():
     return response.json()
 
 
+def renew(client_id, resource, ttl=30):
+    response = requests.post(f"{BASE_URL}/renew", json={
+        "client_id": client_id,
+        "resource": resource,
+        "ttl": ttl
+    })
+    return response.json()
+
+
 def get_logs():
     response = requests.get(f"{BASE_URL}/logs")
     return response.json()
@@ -91,6 +100,35 @@ def demo_status():
     show("GET /locks (sau khi hết hạn)", get_locks())
 
 
+def demo_renew():
+    print("=" * 50)
+    print("  Demo Giai đoạn 6: Renew Lock / Extend Lease")
+    print("=" * 50)
+    print()
+
+    # 1. Client A lock file_A TTL=8s
+    show("client_A xin khóa file_A (TTL=8s)", lock("client_A", "file_A", ttl=8))
+
+    # 2. Client B lock → bị từ chối
+    show("client_B xin khóa file_A (bị từ chối)", lock("client_B", "file_A"))
+
+    # 3. Sau 5s, A renew thêm 30s
+    print("Chờ 5 giây rồi client_A renew...\n")
+    time.sleep(5)
+    show("client_A gia hạn lock thêm 30s", renew("client_A", "file_A", ttl=30))
+
+    # 4. Sau 5s nữa (đã qua TTL gốc 8s), lock vẫn còn
+    print("Chờ thêm 5 giây (đã qua TTL gốc)...\n")
+    time.sleep(5)
+    show("GET /status/file_A (lock vẫn còn hiệu lực)", status("file_A"))
+
+    # 5. Client B vẫn chưa lock được
+    show("client_B xin khóa file_A (vẫn bị từ chối)", lock("client_B", "file_A"))
+
+    # 6. Test: client không phải owner không được renew
+    show("client_B cố gia hạn lock của A (bị từ chối)", renew("client_B", "file_A", ttl=30))
+
+
 def demo_logs():
     print("=" * 50)
     print("  Demo Giai đoạn 5: Operation Logs")
@@ -141,6 +179,8 @@ if __name__ == '__main__':
             demo_timeout()
         elif mode == "status":
             demo_status()
+        elif mode == "renew":
+            demo_renew()
         elif mode == "logs":
             demo_logs()
         else:

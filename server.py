@@ -33,6 +33,20 @@ def unlock():
     return jsonify(result)
 
 
+@app.route('/renew', methods=['POST'])
+def renew():
+    data = request.get_json()
+    client_id = data.get('client_id')
+    resource = data.get('resource')
+    ttl = data.get('ttl', 30)
+
+    if not client_id or not resource:
+        return jsonify({"success": False, "message": "client_id and resource are required"}), 400
+
+    result = lock_manager.renew_lock(client_id, resource, ttl)
+    return jsonify(result)
+
+
 @app.route('/status/<resource>', methods=['GET'])
 def status(resource):
     result = lock_manager.get_status(resource)
