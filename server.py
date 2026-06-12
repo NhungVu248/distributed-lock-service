@@ -1,0 +1,37 @@
+from flask import Flask, request, jsonify
+from lock_manager import LockManager
+
+app = Flask(__name__)
+lock_manager = LockManager()
+
+
+@app.route('/lock', methods=['POST'])
+def lock():
+    data = request.get_json()
+    client_id = data.get('client_id')
+    resource = data.get('resource')
+    ttl = data.get('ttl', 30)
+    wait = data.get('wait', False)
+
+    if not client_id or not resource:
+        return jsonify({"success": False, "message": "client_id and resource are required"}), 400
+
+    result = lock_manager.acquire_lock(client_id, resource, ttl, wait)
+    return jsonify(result)
+
+
+@app.route('/unlock', methods=['POST'])
+def unlock():
+    data = request.get_json()
+    client_id = data.get('client_id')
+    resource = data.get('resource')
+
+    if not client_id or not resource:
+        return jsonify({"success": False, "message": "client_id and resource are required"}), 400
+
+    result = lock_manager.release_lock(client_id, resource)
+    return jsonify(result)
+
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
