@@ -45,5 +45,10 @@ def locks():
     return jsonify({"locks": result})
 
 
+@app.route('/logs', methods=['GET'])
+def logs():
+    return jsonify({"logs": lock_manager.get_logs()})
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

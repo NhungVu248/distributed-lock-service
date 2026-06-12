@@ -34,6 +34,11 @@ def get_locks():
     return response.json()
 
 
+def get_logs():
+    response = requests.get(f"{BASE_URL}/logs")
+    return response.json()
+
+
 def show(label, result):
     status = "OK" if result.get("success") else "FAIL"
     print(f"[{status}] {label}")
@@ -86,6 +91,29 @@ def demo_status():
     show("GET /locks (sau khi hết hạn)", get_locks())
 
 
+def demo_logs():
+    print("=" * 50)
+    print("  Demo Giai đoạn 5: Operation Logs")
+    print("=" * 50)
+    print()
+
+    # Tạo ra các thao tác để có log
+    lock("client_A", "file_A", ttl=30)
+    lock("client_B", "file_A", ttl=30)          # bị từ chối
+    lock("client_C", "file_A", ttl=30, wait=True)  # vào queue
+    unlock("client_A", "file_A")                # A unlock, C auto-grant
+    unlock("client_C", "file_A")
+
+    # Hiển thị toàn bộ log
+    result = get_logs()
+    print(f"Tổng số log: {len(result['logs'])}\n")
+    for entry in result["logs"]:
+        print(f"  [{entry['result']:10}] {entry['time']}  "
+              f"{entry['client_id']:10} {entry['action']:12} {entry['resource']}  "
+              f"— {entry['message']}")
+    print()
+
+
 def demo_timeout():
     print("=" * 50)
     print("  Demo Giai đoạn 3: Lock Timeout / Lease Expiration")
@@ -113,6 +141,8 @@ if __name__ == '__main__':
             demo_timeout()
         elif mode == "status":
             demo_status()
+        elif mode == "logs":
+            demo_logs()
         else:
             demo()
     except requests.exceptions.ConnectionError:

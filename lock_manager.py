@@ -97,6 +97,9 @@ class LockManager:
             "queue_length": len(self.waiting_queues.get(resource, []))
         }
 
+    def get_logs(self):
+        return list(self.logs)
+
     def get_all_locks(self):
         # Passive expiry check for all resources
         for resource in list(self.locks.keys()):
