@@ -43,6 +43,14 @@ def renew(client_id, resource, ttl=30):
     return response.json()
 
 
+def admin_force_unlock(admin_id, resource):
+    response = requests.post(f"{BASE_URL}/admin/force-unlock", json={
+        "admin_id": admin_id,
+        "resource": resource
+    })
+    return response.json()
+
+
 def get_queue(resource):
     response = requests.get(f"{BASE_URL}/queue/{resource}")
     return response.json()
@@ -103,6 +111,32 @@ def demo_status():
 
     # 6. Xem /locks sau khi hết TTL -> rỗng
     show("GET /locks (sau khi hết hạn)", get_locks())
+
+
+def demo_admin():
+    print("=" * 50)
+    print("  Demo Giai đoạn 8: Force Unlock by Admin")
+    print("=" * 50)
+    print()
+
+    # 1. A lock file_A
+    show("client_A xin khóa file_A", lock("client_A", "file_A", ttl=60))
+
+    # 2. B vào hàng đợi
+    show("client_B xin khóa file_A với wait=True (vào queue)", lock("client_B", "file_A", wait=True))
+
+    # 3. Xem queue trước khi force unlock
+    show("GET /queue/file_A (trước force unlock)", get_queue("file_A"))
+
+    # 4. Kẻ lạ cố force unlock → bị từ chối
+    show("hacker cố force unlock (bị từ chối)", admin_force_unlock("hacker", "file_A"))
+
+    # 5. Admin force unlock → B tự động được cấp lock
+    show("admin force unlock file_A", admin_force_unlock("admin", "file_A"))
+
+    # 6. Kiểm tra B đã có lock
+    show("GET /status/file_A (B được cấp lock tự động)", status("file_A"))
+    show("GET /queue/file_A (queue rỗng)", get_queue("file_A"))
 
 
 def demo_queue():
@@ -208,7 +242,9 @@ def demo_timeout():
 if __name__ == '__main__':
     try:
         mode = sys.argv[1] if len(sys.argv) > 1 else "basic"
-        if mode == "queue":
+        if mode == "admin":
+            demo_admin()
+        elif mode == "queue":
             demo_queue()
         elif mode == "timeout":
             demo_timeout()

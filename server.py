@@ -59,6 +59,19 @@ def locks():
     return jsonify({"locks": result})
 
 
+@app.route('/admin/force-unlock', methods=['POST'])
+def force_unlock():
+    data = request.get_json()
+    admin_id = data.get('admin_id')
+    resource = data.get('resource')
+
+    if not admin_id or not resource:
+        return jsonify({"success": False, "message": "admin_id and resource are required"}), 400
+
+    result = lock_manager.force_unlock(admin_id, resource)
+    return jsonify(result)
+
+
 @app.route('/queue/<resource>', methods=['GET'])
 def queue(resource):
     return jsonify(lock_manager.get_queue(resource))

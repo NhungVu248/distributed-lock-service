@@ -136,6 +136,32 @@ class LockManager:
             "queue_length": len(self.waiting_queues.get(resource, []))
         }
 
+    def force_unlock(self, admin_id, resource):
+        if admin_id != "admin":
+            return {
+                "success": False,
+                "message": "Permission denied. Only admin can force unlock."
+            }
+
+        if resource not in self.locks:
+            return {
+                "success": False,
+                "message": "Resource is not locked",
+                "resource": resource
+            }
+
+        old_owner = self.locks[resource]["owner"]
+        del self.locks[resource]
+        self._log(admin_id, "FORCE_UNLOCK", resource, "SUCCESS",
+                  f"Resource forcefully unlocked by admin (was held by {old_owner})")
+        self._grant_next_in_queue(resource)
+
+        return {
+            "success": True,
+            "message": "Resource has been forcefully unlocked by admin",
+            "resource": resource
+        }
+
     def get_queue(self, resource):
         queue = self.waiting_queues.get(resource, [])
         return {
