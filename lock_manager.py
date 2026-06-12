@@ -8,6 +8,12 @@ class LockManager:
         self.logs = []
 
     def acquire_lock(self, client_id, resource, ttl=30, wait=False):
+        # Phase 3: handle expired lock before checking if locked
+        if resource in self.locks and self._is_expired(resource):
+            old_owner = self.locks[resource]["owner"]
+            del self.locks[resource]
+            self._log(old_owner, "EXPIRED", resource, "EXPIRED", "Lock expired due to TTL")
+
         if resource in self.locks:
             lock = self.locks[resource]
             if wait:
@@ -91,6 +97,16 @@ class LockManager:
         self._grant_lock(next_entry["client_id"], resource, next_entry["ttl"])
         self._log(next_entry["client_id"], "AUTO_GRANT", resource, "SUCCESS",
                   "Lock auto-granted from waiting queue")
+
+    def _is_expired(self, resource):
+        lock = self.locks.get(resource)
+        if not lock:
+            return False
+        try:
+            expires = datetime.strptime(lock["expires_at"], "%Y-%m-%d %H:%M:%S")
+            return datetime.now() > expires
+        except Exception:
+            return False
 
     def _ttl_remaining(self, lock):
         try:

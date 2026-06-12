@@ -1,6 +1,7 @@
 import requests
 import json
 import sys
+import time
 
 BASE_URL = "http://localhost:5000"
 
@@ -49,9 +50,33 @@ def demo():
     show("client_B xin khóa file_A (sau khi A unlock)", lock("client_B", "file_A", ttl=30))
 
 
+def demo_timeout():
+    print("=" * 50)
+    print("  Demo Giai đoạn 3: Lock Timeout / Lease Expiration")
+    print("=" * 50)
+    print()
+
+    # 1. Client A lock file_B TTL 5 giây
+    show("client_A xin khóa file_B (TTL=5s)", lock("client_A", "file_B", ttl=5))
+
+    # 2. Client B lock ngay lập tức → thất bại
+    show("client_B xin khóa file_B ngay lập tức (bị từ chối)", lock("client_B", "file_B", ttl=30))
+
+    # 3. Chờ hết TTL
+    print("Chờ 6 giây cho lock hết hạn...\n")
+    time.sleep(6)
+
+    # 4. Client B lock sau khi hết TTL → thành công
+    show("client_B xin khóa file_B sau khi hết hạn (thành công)", lock("client_B", "file_B", ttl=30))
+
+
 if __name__ == '__main__':
     try:
-        demo()
+        mode = sys.argv[1] if len(sys.argv) > 1 else "basic"
+        if mode == "timeout":
+            demo_timeout()
+        else:
+            demo()
     except requests.exceptions.ConnectionError:
         print("Lỗi: Không kết nối được server. Hãy chạy 'python server.py' trước.")
         sys.exit(1)
