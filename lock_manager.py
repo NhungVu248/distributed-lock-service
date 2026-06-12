@@ -136,6 +136,16 @@ class LockManager:
             "queue_length": len(self.waiting_queues.get(resource, []))
         }
 
+    def get_queue(self, resource):
+        queue = self.waiting_queues.get(resource, [])
+        return {
+            "resource": resource,
+            "queue": [
+                {"position": i + 1, "client_id": e["client_id"], "ttl": e["ttl"]}
+                for i, e in enumerate(queue)
+            ]
+        }
+
     def get_logs(self):
         return list(self.logs)
 

@@ -59,6 +59,11 @@ def locks():
     return jsonify({"locks": result})
 
 
+@app.route('/queue/<resource>', methods=['GET'])
+def queue(resource):
+    return jsonify(lock_manager.get_queue(resource))
+
+
 @app.route('/logs', methods=['GET'])
 def logs():
     return jsonify({"logs": lock_manager.get_logs()})

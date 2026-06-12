@@ -43,6 +43,11 @@ def renew(client_id, resource, ttl=30):
     return response.json()
 
 
+def get_queue(resource):
+    response = requests.get(f"{BASE_URL}/queue/{resource}")
+    return response.json()
+
+
 def get_logs():
     response = requests.get(f"{BASE_URL}/logs")
     return response.json()
@@ -98,6 +103,34 @@ def demo_status():
 
     # 6. Xem /locks sau khi hết TTL -> rỗng
     show("GET /locks (sau khi hết hạn)", get_locks())
+
+
+def demo_queue():
+    print("=" * 50)
+    print("  Demo Giai đoạn 7: Waiting Queue")
+    print("=" * 50)
+    print()
+
+    # 1. A lock file_A thành công
+    show("client_A xin khóa file_A", lock("client_A", "file_A", ttl=30))
+
+    # 2. B và C vào hàng đợi
+    show("client_B xin khóa file_A với wait=True (vào queue)", lock("client_B", "file_A", wait=True))
+    show("client_C xin khóa file_A với wait=True (vào queue)", lock("client_C", "file_A", wait=True))
+
+    # 3. Xem hàng đợi
+    show("GET /queue/file_A", get_queue("file_A"))
+
+    # 4. A unlock → B tự động được cấp lock
+    show("client_A nhả khóa file_A", unlock("client_A", "file_A"))
+
+    # 5. Kiểm tra B đã có lock, C vẫn trong queue
+    show("GET /status/file_A (B đang giữ)", status("file_A"))
+    show("GET /queue/file_A (C vẫn chờ)", get_queue("file_A"))
+
+    # 6. B unlock → C tự động được cấp lock
+    show("client_B nhả khóa file_A", unlock("client_B", "file_A"))
+    show("GET /status/file_A (C đang giữ)", status("file_A"))
 
 
 def demo_renew():
@@ -175,7 +208,9 @@ def demo_timeout():
 if __name__ == '__main__':
     try:
         mode = sys.argv[1] if len(sys.argv) > 1 else "basic"
-        if mode == "timeout":
+        if mode == "queue":
+            demo_queue()
+        elif mode == "timeout":
             demo_timeout()
         elif mode == "status":
             demo_status()
