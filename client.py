@@ -24,6 +24,16 @@ def unlock(client_id, resource):
     return response.json()
 
 
+def status(resource):
+    response = requests.get(f"{BASE_URL}/status/{resource}")
+    return response.json()
+
+
+def get_locks():
+    response = requests.get(f"{BASE_URL}/locks")
+    return response.json()
+
+
 def show(label, result):
     status = "OK" if result.get("success") else "FAIL"
     print(f"[{status}] {label}")
@@ -48,6 +58,32 @@ def demo():
 
     # 4. Client B lock file_A thành công sau khi A unlock
     show("client_B xin khóa file_A (sau khi A unlock)", lock("client_B", "file_A", ttl=30))
+
+
+def demo_status():
+    print("=" * 50)
+    print("  Demo Giai đoạn 4: Lock Status / Monitoring")
+    print("=" * 50)
+    print()
+
+    # 1. Lock file_A
+    show("client_A xin khóa file_A (TTL=5s)", lock("client_A", "file_A", ttl=5))
+
+    # 2. Xem status -> LOCKED
+    show("GET /status/file_A (đang bị khóa)", status("file_A"))
+
+    # 3. Xem danh sách tất cả lock
+    show("GET /locks (danh sách lock hiện tại)", get_locks())
+
+    # 4. Chờ hết TTL
+    print("Chờ 6 giây cho lock hết hạn...\n")
+    time.sleep(6)
+
+    # 5. Xem status sau khi hết TTL -> FREE
+    show("GET /status/file_A (sau khi hết hạn)", status("file_A"))
+
+    # 6. Xem /locks sau khi hết TTL -> rỗng
+    show("GET /locks (sau khi hết hạn)", get_locks())
 
 
 def demo_timeout():
@@ -75,6 +111,8 @@ if __name__ == '__main__':
         mode = sys.argv[1] if len(sys.argv) > 1 else "basic"
         if mode == "timeout":
             demo_timeout()
+        elif mode == "status":
+            demo_status()
         else:
             demo()
     except requests.exceptions.ConnectionError:

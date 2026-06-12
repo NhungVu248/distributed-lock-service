@@ -33,5 +33,17 @@ def unlock():
     return jsonify(result)
 
 
+@app.route('/status/<resource>', methods=['GET'])
+def status(resource):
+    result = lock_manager.get_status(resource)
+    return jsonify(result)
+
+
+@app.route('/locks', methods=['GET'])
+def locks():
+    result = lock_manager.get_all_locks()
+    return jsonify({"locks": result})
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

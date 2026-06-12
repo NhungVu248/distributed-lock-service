@@ -71,6 +71,51 @@ class LockManager:
             "resource": resource
         }
 
+    def get_status(self, resource):
+        # Passive expiry check: grant to queue head if any
+        if resource in self.locks and self._is_expired(resource):
+            old_owner = self.locks[resource]["owner"]
+            del self.locks[resource]
+            self._log(old_owner, "EXPIRED", resource, "EXPIRED", "Lock expired due to TTL")
+            self._grant_next_in_queue(resource)
+
+        if resource in self.locks:
+            lock = self.locks[resource]
+            return {
+                "resource": resource,
+                "status": "LOCKED",
+                "owner": lock["owner"],
+                "ttl_remaining": self._ttl_remaining(lock),
+                "expires_at": lock["expires_at"],
+                "queue_length": len(self.waiting_queues.get(resource, []))
+            }
+        return {
+            "resource": resource,
+            "status": "FREE",
+            "owner": None,
+            "ttl_remaining": 0,
+            "queue_length": len(self.waiting_queues.get(resource, []))
+        }
+
+    def get_all_locks(self):
+        # Passive expiry check for all resources
+        for resource in list(self.locks.keys()):
+            if self._is_expired(resource):
+                old_owner = self.locks[resource]["owner"]
+                del self.locks[resource]
+                self._log(old_owner, "EXPIRED", resource, "EXPIRED", "Lock expired due to TTL")
+                self._grant_next_in_queue(resource)
+
+        return [
+            {
+                "resource": r,
+                "status": "LOCKED",
+                "owner": lock["owner"],
+                "ttl_remaining": self._ttl_remaining(lock)
+            }
+            for r, lock in self.locks.items()
+        ]
+
     def _grant_lock(self, client_id, resource, ttl):
         now = datetime.now()
         expires_at = now + timedelta(seconds=ttl)
